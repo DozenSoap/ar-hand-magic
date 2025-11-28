@@ -197,6 +197,10 @@
         let clock = new THREE.Clock();
         let handDistance = 0; // 手指捏合距离
 
+        // 旋转手势相关
+        let lastGestureAngle = null;
+        let cumulativeRotation = 0;
+
         // --- 初始化 Three.js ---
         function initThree() {
             const canvas = document.getElementById('output-canvas');
@@ -205,7 +209,10 @@
 
             // 透视相机
             camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 100);
-            camera.position.z = 5;
+
+            // 移动端适配：屏幕越窄，相机离得越远，以保证模型完整显示
+            const isMobile = window.innerWidth < 600;
+            camera.position.z = isMobile ? 15 : 8;
 
             renderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true, antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
@@ -336,6 +343,7 @@
                         const v = Math.random();
                         const theta = 2 * Math.PI * u;
                         const phi = Math.acos(2 * v - 1);
+                        const r = 1.5;
                         x = r * Math.sin(phi) * Math.cos(theta);
                         y = cy + r * Math.sin(phi) * Math.sin(theta);
                         z = r * Math.cos(phi);
@@ -411,8 +419,8 @@
 
             particles.geometry.attributes.position.needsUpdate = true;
 
-            // 缓慢旋转整个粒子系统
-            particles.rotation.y = time * 0.1;
+            // 旋转逻辑：使用手势控制的累积旋转
+            particles.rotation.y = cumulativeRotation;
 
             renderer.render(scene, camera);
         }
@@ -421,6 +429,10 @@
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
+
+            // 响应式调整相机距离
+            const isMobile = window.innerWidth < 600;
+            camera.position.z = isMobile ? 15 : 8;
         }
 
         // --- UI 初始化 ---
@@ -502,24 +514,43 @@
                 config.handDetected = true;
                 const landmarks = results.multiHandLandmarks[0];
 
-                // 获取拇指指尖 (4) 和 食指指尖 (8)
+                // --- 1. 捏合扩散检测 ---
                 const thumbTip = landmarks[4];
                 const indexTip = landmarks[8];
 
-                // 计算欧几里得距离 (简单估算，忽略 Z 轴深度影响，因为是 2D 投影坐标)
-                // MediaPipe landmark x,y 是 0-1 归一化坐标
                 const dx = thumbTip.x - indexTip.x;
                 const dy = thumbTip.y - indexTip.y;
-                const dz = thumbTip.z - indexTip.z; // z 是相对于手腕的深度估算
+                const dz = thumbTip.z - indexTip.z;
 
-                // 使用 3D 距离更准确
                 handDistance = Math.sqrt(dx * dx + dy * dy + dz * dz);
 
-                // 可选：调试输出
-                // console.log('Distance:', handDistance);
+                // --- 2. 旋转手势检测 (屏幕中心画圈) ---
+                // 计算食指指尖 (8) 相对于屏幕中心 (0.5, 0.5) 的角度
+                // MediaPipe x, y 是 0-1
+                const centerX = 0.5;
+                const centerY = 0.5;
+
+                // 3点钟: 0, 6点钟: PI/2...
+                const angle = Math.atan2(indexTip.y - centerY, indexTip.x - centerX);
+
+                if (lastGestureAngle !== null) {
+                    let delta = angle - lastGestureAngle;
+
+                    // 处理角度跳变
+                    if (delta > Math.PI) delta -= Math.PI * 2;
+                    if (delta < -Math.PI) delta += Math.PI * 2;
+
+                    // 顺时针画圈 -> 模型顺时针转
+                    // 屏幕坐标系：顺时针角度增加
+                    // 模型 Y 轴：逆时针为正
+                    // 所以：cumulativeRotation -= delta
+                    cumulativeRotation -= delta * 2.0; // 提高灵敏度
+                }
+                lastGestureAngle = angle;
 
             } else {
                 config.handDetected = false;
+                lastGestureAngle = null;
             }
         }
 
