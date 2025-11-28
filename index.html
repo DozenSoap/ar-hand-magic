@@ -1,8 +1,10 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>AR 粒子系统 - Three.js & MediaPipe</title>
     <style>
         /* 基础重置与移动端适配 */
@@ -35,7 +37,8 @@
             position: absolute;
             top: 50%;
             left: 50%;
-            transform: translate(-50%, -50%) scaleX(-1); /* 镜像翻转 */
+            transform: translate(-50%, -50%) scaleX(-1);
+            /* 镜像翻转 */
             min-width: 100%;
             min-height: 100%;
             width: auto;
@@ -51,7 +54,8 @@
             width: 100%;
             height: 100%;
             z-index: 1;
-            pointer-events: none; /* 让点击穿透到 UI */
+            pointer-events: none;
+            /* 让点击穿透到 UI */
         }
 
         /* UI 容器 */
@@ -121,32 +125,34 @@
         }
 
         /* lil-gui 移动端适配调整 */
-        .lil-gui { 
+        .lil-gui {
             --width: 200px;
             font-size: 14px;
         }
+
         .lil-gui.autoPlace {
             top: env(safe-area-inset-top, 10px) !important;
             right: 10px !important;
         }
     </style>
-    
+
     <!-- 引入 Three.js -->
     <script type="importmap">
         {
             "imports": {
-                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
-                "lil-gui": "https://unpkg.com/lil-gui@0.19.1/dist/lil-gui.esm.min.js"
+                "three": "https://npm.elemecdn.com/three@0.160.0/build/three.module.js",
+                "lil-gui": "https://npm.elemecdn.com/lil-gui@0.19.1/dist/lil-gui.esm.min.js"
             }
         }
     </script>
 
     <!-- 引入 MediaPipe Hands (全局脚本方式) -->
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+    <script src="https://npm.elemecdn.com/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://npm.elemecdn.com/@mediapipe/control_utils/control_utils.js" crossorigin="anonymous"></script>
+    <script src="https://npm.elemecdn.com/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+    <script src="https://npm.elemecdn.com/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
 </head>
+
 <body>
 
     <!-- 视频容器 -->
@@ -180,7 +186,7 @@
         };
 
         const shapes = ['Heart', 'Saturn', 'Flower', 'Buddha', 'Fireworks'];
-        
+
         // --- 全局变量 ---
         let scene, camera, renderer;
         let particles, geometry, material;
@@ -192,9 +198,9 @@
         // --- 初始化 Three.js ---
         function initThree() {
             const canvas = document.getElementById('output-canvas');
-            
+
             scene = new THREE.Scene();
-            
+
             // 透视相机
             camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 100);
             camera.position.z = 5;
@@ -214,7 +220,7 @@
         function initParticles() {
             geometry = new THREE.BufferGeometry();
             const positions = new Float32Array(config.particleCount * 3);
-            
+
             // 初始随机位置
             for (let i = 0; i < config.particleCount * 3; i++) {
                 positions[i] = (Math.random() - 0.5) * 10;
@@ -246,7 +252,7 @@
         function updateTargetShape() {
             targetPositions = new Float32Array(config.particleCount * 3);
             const type = config.shape;
-            
+
             for (let i = 0; i < config.particleCount; i++) {
                 let x, y, z;
                 const idx = i * 3;
@@ -257,12 +263,12 @@
                     const r = Math.random(); // 填充内部
                     // 基础心形曲线
                     let hx = 16 * Math.pow(Math.sin(t), 3);
-                    let hy = 13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t);
+                    let hy = 13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t);
                     // 缩放并添加体积
                     const scale = 0.15;
                     x = hx * scale * Math.sqrt(r);
                     y = hy * scale * Math.sqrt(r);
-                    z = (Math.random() - 0.5) * 2; 
+                    z = (Math.random() - 0.5) * 2;
 
                 } else if (type === 'Saturn') {
                     // 土星：球体 + 环
@@ -273,7 +279,7 @@
                         x = Math.cos(angle) * radius;
                         z = Math.sin(angle) * radius;
                         y = (Math.random() - 0.5) * 0.2; // 薄环
-                        
+
                         // 倾斜环
                         const tilt = Math.PI / 6;
                         const y_new = y * Math.cos(tilt) - z * Math.sin(tilt);
@@ -298,7 +304,7 @@
                     const theta = Math.random() * Math.PI * 2;
                     const r_max = Math.cos(k * theta);
                     const r = Math.random() * Math.abs(r_max) * 3;
-                    
+
                     x = r * Math.cos(theta);
                     y = r * Math.sin(theta);
                     z = (Math.random() - 0.5) * 1; // 厚度
@@ -322,7 +328,7 @@
                         z = r * Math.sin(theta);
                         y = cy;
                     }
-                    
+
                     if (part < 0.7) {
                         const u = Math.random();
                         const v = Math.random();
@@ -369,14 +375,14 @@
                 const normalizedDist = Math.max(0, Math.min(1, (handDistance - 0.02) / 0.3));
                 targetSpread = normalizedDist * 3.0; // 放大效果系数
             }
-            
+
             // 平滑插值 spread
             config.spread += (targetSpread - config.spread) * 0.1;
 
             // 粒子运动逻辑
             for (let i = 0; i < config.particleCount; i++) {
                 const idx = i * 3;
-                
+
                 // 目标位置
                 const tx = targetPositions[idx];
                 const ty = targetPositions[idx + 1];
@@ -391,7 +397,7 @@
                 // 应用扩散效果 (基于中心点 0,0,0 向外推)
                 // 简单的爆炸效果：pos = currentPos * (1 + spread)
                 const spreadFactor = 1 + config.spread;
-                
+
                 positions[idx] = currentPositions[idx] * spreadFactor;
                 positions[idx + 1] = currentPositions[idx + 1] * spreadFactor;
                 positions[idx + 2] = currentPositions[idx + 2] * spreadFactor;
@@ -402,7 +408,7 @@
             }
 
             particles.geometry.attributes.position.needsUpdate = true;
-            
+
             // 缓慢旋转整个粒子系统
             particles.rotation.y = time * 0.1;
 
@@ -418,7 +424,7 @@
         // --- UI 初始化 ---
         function initGUI() {
             const gui = new GUI({ title: '控制面板' });
-            
+
             gui.addColor(config, 'color').name('粒子颜色').onChange(val => {
                 material.color.set(val);
             });
@@ -448,9 +454,11 @@
             startBtn.disabled = true;
             startBtn.innerText = '加载模型中...';
 
-            const hands = new Hands({locateFile: (file) => {
-                return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
-            }});
+            const hands = new Hands({
+                locateFile: (file) => {
+                    return `https://npm.elemecdn.com/@mediapipe/hands/${file}`;
+                }
+            });
 
             hands.setOptions({
                 maxNumHands: 1,
@@ -464,7 +472,7 @@
             // 摄像头工具
             const cameraUtils = new Camera(videoElement, {
                 onFrame: async () => {
-                    await hands.send({image: videoElement});
+                    await hands.send({ image: videoElement });
                 },
                 width: 1280,
                 height: 720,
@@ -491,7 +499,7 @@
             if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
                 config.handDetected = true;
                 const landmarks = results.multiHandLandmarks[0];
-                
+
                 // 获取拇指指尖 (4) 和 食指指尖 (8)
                 const thumbTip = landmarks[4];
                 const indexTip = landmarks[8];
@@ -501,10 +509,10 @@
                 const dx = thumbTip.x - indexTip.x;
                 const dy = thumbTip.y - indexTip.y;
                 const dz = thumbTip.z - indexTip.z; // z 是相对于手腕的深度估算
-                
+
                 // 使用 3D 距离更准确
-                handDistance = Math.sqrt(dx*dx + dy*dy + dz*dz);
-                
+                handDistance = Math.sqrt(dx * dx + dy * dy + dz * dz);
+
                 // 可选：调试输出
                 // console.log('Distance:', handDistance);
 
@@ -520,4 +528,5 @@
 
     </script>
 </body>
+
 </html>
