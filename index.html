@@ -187,7 +187,7 @@
             handDetected: false
         };
 
-        const shapes = ['Heart', 'Saturn', 'Flower', 'Buddha', 'Fireworks'];
+        const shapes = ['Heart', 'Saturn', 'Flower', 'Buddha', 'Fireworks', 'LoveText'];
 
         // --- 全局变量 ---
         let scene, camera, renderer;
@@ -256,6 +256,9 @@
             // 生成初始目标形状
             updateTargetShape();
         }
+
+        // 文字采样缓存
+        let textSamplingCache = null;
 
         // --- 形状生成算法 ---
         function updateTargetShape() {
@@ -359,12 +362,69 @@
                     x = r * Math.sin(phi) * Math.cos(theta);
                     y = r * Math.sin(phi) * Math.sin(theta);
                     z = r * Math.cos(phi);
+
+                } else if (type === 'LoveText') {
+                    // 文字 "鸣 LOVE 炜"
+                    if (!textSamplingCache) {
+                        textSamplingCache = generateTextSampling('鸣 LOVE 炜', 512, 128);
+                    }
+
+                    const points = textSamplingCache;
+                    if (points.length > 0) {
+                        const point = points[i % points.length];
+                        x = point.x;
+                        y = point.y;
+                        z = (Math.random() - 0.5) * 0.5; // 添加一点深度
+                    } else {
+                        x = (Math.random() - 0.5) * 5;
+                        y = (Math.random() - 0.5) * 5;
+                        z = (Math.random() - 0.5) * 0.5;
+                    }
                 }
 
                 targetPositions[idx] = x;
                 targetPositions[idx + 1] = y;
                 targetPositions[idx + 2] = z;
             }
+        }
+
+        // 生成文字采样点
+        function generateTextSampling(text, width, height) {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = width;
+            canvas.height = height;
+
+            // 绘制文字
+            ctx.fillStyle = 'white';
+            ctx.font = 'bold 48px Arial, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(text, width / 2, height / 2);
+
+            // 获取像素数据
+            const imageData = ctx.getImageData(0, 0, width, height);
+            const pixels = imageData.data;
+            const points = [];
+
+            // 采样像素点
+            const step = 2; // 采样间隔，越小越密集
+            for (let y = 0; y < height; y += step) {
+                for (let x = 0; x < width; x += step) {
+                    const i = (y * width + x) * 4;
+                    const alpha = pixels[i + 3];
+
+                    // 如果像素不透明（文字区域）
+                    if (alpha > 128) {
+                        // 将坐标转换为中心为原点的坐标系，并缩放到合适大小
+                        const px = ((x - width / 2) / width) * 10;
+                        const py = -((y - height / 2) / height) * 2.5; // Y轴翻转
+                        points.push({ x: px, y: py });
+                    }
+                }
+            }
+
+            return points;
         }
 
         // --- 动画循环 ---
