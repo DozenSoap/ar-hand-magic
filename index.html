@@ -124,24 +124,6 @@
             color: #00c6ff;
         }
 
-        /* 调试日志层 */
-        #debug-log {
-            position: absolute;
-            bottom: 10px;
-            left: 10px;
-            width: 300px;
-            max-height: 150px;
-            overflow-y: auto;
-            color: #00ff00;
-            font-family: monospace;
-            font-size: 12px;
-            background: rgba(0, 0, 0, 0.5);
-            pointer-events: none;
-            z-index: 100;
-            display: none;
-            /* 默认隐藏，出错时显示 */
-        }
-
         /* lil-gui 移动端适配调整 */
         .lil-gui {
             --width: 200px;
@@ -154,47 +136,23 @@
         }
     </style>
 
-    <!-- 引入 Three.js (国内源) -->
+    <!-- 引入 Three.js -->
     <script type="importmap">
         {
             "imports": {
-                "three": "https://npm.elemecdn.com/three@0.160.0/build/three.module.js",
-                "lil-gui": "https://npm.elemecdn.com/lil-gui@0.19.1/dist/lil-gui.esm.min.js"
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "lil-gui": "https://unpkg.com/lil-gui@0.19.1/dist/lil-gui.esm.min.js"
             }
         }
     </script>
 
-    <!-- 全局错误捕获 -->
-    <script>
-        window.onerror = function (msg, url, line) {
-            const log = document.getElementById('debug-log');
-            if (log) {
-                log.style.display = 'block';
-                log.innerHTML += `<div style="color:red">Error: ${msg} <br> Line: ${line}</div>`;
-            }
-            // 仅在严重错误时弹窗，避免干扰
-            // alert('Error: ' + msg + '\nLine: ' + line);
-        };
-
-        function logMsg(msg) {
-            const log = document.getElementById('debug-log');
-            if (log) {
-                log.style.display = 'block';
-                log.innerHTML += `<div>${msg}</div>`;
-                log.scrollTop = log.scrollHeight;
-            }
-            console.log(msg);
-        }
-    </script>
-
-    <!-- 引入 MediaPipe Hands (锁定版本以保证稳定性) -->
-    <script src="https://npm.elemecdn.com/@mediapipe/camera_utils@0.3.1640029074/camera_utils.js"
+    <!-- 引入 MediaPipe Hands (全局脚本方式) -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js"
         crossorigin="anonymous"></script>
-    <script src="https://npm.elemecdn.com/@mediapipe/control_utils@0.6.1629159505/control_utils.js"
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"
         crossorigin="anonymous"></script>
-    <script src="https://npm.elemecdn.com/@mediapipe/drawing_utils@0.3.1620248257/drawing_utils.js"
-        crossorigin="anonymous"></script>
-    <script src="https://npm.elemecdn.com/@mediapipe/hands@0.4.1646424915/hands.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
 </head>
 
 <body>
@@ -214,9 +172,6 @@
         <button id="start-btn">启动摄像头</button>
         <div id="loading">正在初始化 AI 模型...</div>
     </div>
-
-    <!-- 调试日志容器 -->
-    <div id="debug-log"></div>
 
     <script type="module">
         import * as THREE from 'three';
@@ -501,10 +456,9 @@
             startBtn.disabled = true;
             startBtn.innerText = '加载模型中...';
 
-            // 锁定版本，确保 locateFile 能找到对应的 WASM
             const hands = new Hands({
                 locateFile: (file) => {
-                    return `https://npm.elemecdn.com/@mediapipe/hands@0.4.1646424915/${file}`;
+                    return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
                 }
             });
 
@@ -529,17 +483,14 @@
 
             // 启动流程
             try {
-                logMsg('正在请求摄像头权限...');
                 await cameraUtils.start();
-                logMsg('摄像头已启动');
                 startScreen.style.display = 'none'; // 隐藏启动屏
                 initThree(); // 启动 3D
                 initGUI(); // 启动 UI
                 animate(); // 开始动画
             } catch (error) {
                 console.error(error);
-                logMsg('启动失败: ' + error.message);
-                alert('无法启动摄像头: ' + error.message + '\n请确保使用 HTTPS 或 localhost');
+                alert('无法启动摄像头，请确保在 HTTPS 环境下运行并允许摄像头权限。');
                 startBtn.disabled = false;
                 startBtn.innerText = '重试';
                 loadingElement.style.display = 'none';
