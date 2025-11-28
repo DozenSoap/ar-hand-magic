@@ -200,6 +200,7 @@
         // 旋转手势相关
         let lastGestureAngle = null;
         let cumulativeRotation = 0;
+        let deviceOrientationRotation = 0; // 设备方向旋转
 
         // --- 初始化 Three.js ---
         function initThree() {
@@ -223,6 +224,11 @@
 
             // 窗口大小调整
             window.addEventListener('resize', onWindowResize);
+
+            // 设备方向监听
+            window.addEventListener('orientationchange', onOrientationChange);
+            // 初始化方向
+            onOrientationChange();
         }
 
         // --- 粒子系统逻辑 ---
@@ -416,9 +422,9 @@
 
                     // 如果像素不透明（文字区域）
                     if (alpha > 128) {
-                        // 将坐标转换为中心为原点的坐标系，并缩放到合适大小
-                        const px = ((x - width / 2) / width) * 10;
-                        const py = -((y - height / 2) / height) * 2.5; // Y轴翻转
+                        // 将坐标转换为中心为原点的坐标系，并缩放到合适大小（放大1.5倍）
+                        const px = ((x - width / 2) / width) * 10 * 1.5;
+                        const py = -((y - height / 2) / height) * 2.5 * 1.5; // Y轴翻转
                         points.push({ x: px, y: py });
                     }
                 }
@@ -479,8 +485,9 @@
 
             particles.geometry.attributes.position.needsUpdate = true;
 
-            // 旋转逻辑：使用手势控制的累积旋转
+            // 旋转逻辑：使用手势控制的累积旋转 + 设备方向旋转
             particles.rotation.y = cumulativeRotation;
+            particles.rotation.z = deviceOrientationRotation;
 
             renderer.render(scene, camera);
         }
@@ -493,6 +500,28 @@
             // 响应式调整相机距离
             const isMobile = window.innerWidth < 600;
             camera.position.z = isMobile ? 15 : 8;
+        }
+
+        // 设备方向变化处理
+        function onOrientationChange() {
+            // 获取设备方向
+            const orientation = window.orientation || (screen.orientation && screen.orientation.angle) || 0;
+
+            // 根据方向设置旋转角度
+            // 0 = 竖屏, 90 = 向左横屏, -90 = 向右横屏, 180 = 倒立
+            switch (orientation) {
+                case 90:
+                    deviceOrientationRotation = -Math.PI / 2; // 向左横屏，逆时针旋转90度
+                    break;
+                case -90:
+                    deviceOrientationRotation = Math.PI / 2; // 向右横屏，顺时针旋转90度
+                    break;
+                case 180:
+                    deviceOrientationRotation = Math.PI; // 倒立
+                    break;
+                default:
+                    deviceOrientationRotation = 0; // 正常竖屏
+            }
         }
 
         // --- UI 初始化 ---
