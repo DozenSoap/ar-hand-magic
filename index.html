@@ -192,8 +192,8 @@
         // --- 全局变量 ---
         let scene, camera, renderer;
         let particles, geometry, material;
-        let targetPositions = []; // 目标位置数组
-        let currentPositions = []; // 当前位置数组 (用于动画插值)
+        let targetPositions; // 目标位置数组
+        let currentPositions; // 当前位置数组 (用于动画插值)
         let clock = new THREE.Clock();
         let handDistance = 0; // 手指捏合距离
 
@@ -201,6 +201,7 @@
         let lastGestureAngle = null;
         let cumulativeRotation = 0;
         let deviceOrientationRotation = 0; // 设备方向旋转
+        let mediaPipeInitialized = false;
 
         // --- 初始化 Three.js ---
         function initThree() {
@@ -234,10 +235,12 @@
         // --- 粒子系统逻辑 ---
         function initParticles() {
             geometry = new THREE.BufferGeometry();
-            const positions = new Float32Array(config.particleCount * 3);
+            const total = config.particleCount * 3;
+            const positions = new Float32Array(total);
+            currentPositions = new Float32Array(total);
 
             // 初始随机位置
-            for (let i = 0; i < config.particleCount * 3; i++) {
+            for (let i = 0; i < total; i++) {
                 positions[i] = (Math.random() - 0.5) * 10;
                 currentPositions[i] = positions[i];
             }
@@ -268,10 +271,11 @@
 
         // --- 形状生成算法 ---
         function updateTargetShape() {
-            targetPositions = new Float32Array(config.particleCount * 3);
+            const particleCount = config.particleCount;
+            targetPositions = new Float32Array(particleCount * 3);
             const type = config.shape;
 
-            for (let i = 0; i < config.particleCount; i++) {
+            for (let i = 0; i < particleCount; i++) {
                 let x, y, z;
                 const idx = i * 3;
 
@@ -352,7 +356,6 @@
                         const v = Math.random();
                         const theta = 2 * Math.PI * u;
                         const phi = Math.acos(2 * v - 1);
-                        const r = 1.5;
                         x = r * Math.sin(phi) * Math.cos(theta);
                         y = cy + r * Math.sin(phi) * Math.sin(theta);
                         z = r * Math.cos(phi);
@@ -456,7 +459,10 @@
             config.spread += (targetSpread - config.spread) * 0.1;
 
             // 粒子运动逻辑
-            for (let i = 0; i < config.particleCount; i++) {
+            const particleCount = config.particleCount;
+            const spreadFactor = 1 + config.spread;
+
+            for (let i = 0; i < particleCount; i++) {
                 const idx = i * 3;
 
                 // 目标位置
@@ -472,8 +478,6 @@
 
                 // 应用扩散效果 (基于中心点 0,0,0 向外推)
                 // 简单的爆炸效果：pos = currentPos * (1 + spread)
-                const spreadFactor = 1 + config.spread;
-
                 positions[idx] = currentPositions[idx] * spreadFactor;
                 positions[idx + 1] = currentPositions[idx + 1] * spreadFactor;
                 positions[idx + 2] = currentPositions[idx + 2] * spreadFactor;
@@ -496,6 +500,7 @@
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
             // 响应式调整相机距离
             const isMobile = window.innerWidth < 600;
@@ -548,6 +553,8 @@
 
         // --- MediaPipe Hands 集成 ---
         async function initMediaPipe() {
+            if (mediaPipeInitialized) return;
+
             const videoElement = document.getElementById('input-video');
             const loadingElement = document.getElementById('loading');
             const startBtn = document.getElementById('start-btn');
@@ -585,6 +592,7 @@
             // 启动流程
             try {
                 await cameraUtils.start();
+                mediaPipeInitialized = true;
                 startScreen.style.display = 'none'; // 隐藏启动屏
                 initThree(); // 启动 3D
                 initGUI(); // 启动 UI
@@ -592,6 +600,7 @@
             } catch (error) {
                 console.error(error);
                 alert('无法启动摄像头，请确保在 HTTPS 环境下运行并允许摄像头权限。');
+                mediaPipeInitialized = false;
                 startBtn.disabled = false;
                 startBtn.innerText = '重试';
                 loadingElement.style.display = 'none';
